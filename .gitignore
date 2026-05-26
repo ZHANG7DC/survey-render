@@ -12,14 +12,14 @@ venv/
 data/
 output/
 logs/
-.tmp_hst_100k/
 *.zarr/
 *.h5
 *.hdf5
 *.npz
 *.fits
+*.fits.gz
 
-# Local secrets and machine-specific config
+# Local config
 .env
 .env.*
 *.local

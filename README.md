@@ -1,38 +1,55 @@
-# HST Anomaly Multi-Survey Generator
+# Survey Render
 
-Standalone source-only generator for HST COSMOS-backed strong-lensing and false-positive simulations rendered into Euclid, LSST, and Roman image products.
+Direct renderer for converting HST cutout images into survey-like Euclid, LSST, and Roman image tensors.
 
-The code uses SLSim for the lens/source populations and HST COSMOS catalog-source morphology support, then writes aligned multi-survey tensors and component products to zarr or HDF5.
+This repository is intentionally **not** a strong-lens population generator. It does not create deflectors, sources, lens fields, labels, or component maps. It takes existing HST image cutouts and applies survey-like degradation:
 
-## What It Generates
+1. optional background subtraction,
+2. flux-conserving pixel-scale resampling,
+3. PSF broadening from the HST PSF to the target survey PSF,
+4. optional per-band flux scaling,
+5. target survey background/noise injection,
+6. post-render brightness/SNR filtering.
 
-Entrypoints:
+## Outputs
 
-- `LRE_gg_lens.py`: positive strong-lens systems.
-- `LRE_gg_nonlens.py`: false-positive / non-lens systems.
-- `run_hst_100k_production.sh`: production wrapper for HST-enabled lens and non-lens generation.
+The main output is a zarr group with:
 
-Default HST production bands:
+- `id`: kept sample IDs,
+- `source_path`: original HST file paths,
+- `images/{euclid,lsst,roman}`: noisy survey-like renderings,
+- `clean_images/{euclid,lsst,roman}`: optional pre-noise renderings when `--write-clean` is used.
 
-- Euclid: `VIS`
-- LSST: `g,r,i,z,y` via `--lsst-bands all`
-- Roman: `F106,F129,F158`
+The renderer also writes:
 
-Each sample contains observed images, clean/no-PSF components, source/deflector components, noise realization, and lens-field maps such as kappa, deflection, shear, magnification, and potential.
+- `<out>.metadata.csv`: kept sample metrics,
+- `<out>.rejected.csv`: rejected samples and reasons,
+- `<out>.manifest.json`: run configuration and target survey settings.
 
-## Attribution
+## Filtering
 
-This repository depends on and should credit SLSim:
+Post-render filtering is enabled by default:
 
-- SLSim: https://github.com/LSST-strong-lensing/slsim
-- Documentation: https://slsim.readthedocs.io
-- License: MIT
+```bash
+--min-snr 5 --require-detected-in all
+```
 
-SLSim originates from the LSST Strong Lensing Science Collaboration and LSST DESC ecosystem. If you use this generator for research, acknowledge/cite SLSim and the HST COSMOS source catalog data used for the morphology prior.
+A target band passes when the rendered clean image satisfies:
+
+- integrated positive-mask flux >= `--min-flux`,
+- integrated SNR >= `--min-snr`,
+- peak SNR >= `--min-peak-snr`.
+
+`--require-detected-in` can be:
+
+- `all`: every selected target band must pass,
+- `any`: at least one selected target band must pass,
+- `euclid,lsst,roman`: at least one band in each listed survey must pass,
+- explicit target keys such as `euclid/VIS,lsst/i,roman/F158`.
+
+This is the step that removes HST cutouts that become too faint after rendering into the selected survey-like observations.
 
 ## Install
-
-Create an environment with Python 3.10+ and install dependencies:
 
 ```bash
 python -m venv .venv
@@ -40,94 +57,49 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-If your local SLSim setup is custom, install that first instead of the GitHub dependency in `requirements.txt`.
-
-## Required External Data
-
-HST mode needs a COSMOS 23.5 training sample directory containing at least:
-
-- `real_galaxy_catalog_23.5.fits`
-- `real_galaxy_catalog_23.5_fits.fits`
-- either `test_galaxy_images_23.5.fits` or `real_galaxy_images_23.5_n*.fits`
-
-Set either:
+## Smoke Test
 
 ```bash
-export HST_COSMOS_PATH=/path/to/COSMOS_23.5_training_sample
+bash examples/run_synthetic_smoke.sh
 ```
 
-or pass:
+## Render Real HST Cutouts
 
 ```bash
---hst-cosmos-path /path/to/COSMOS_23.5_training_sample
-```
-
-The Euclid VIS filter must be available to `speclite`. If it is not installed globally, set:
-
-```bash
-export EUCLID_VIS_FILTER_PATH=/path/to/Euclid-VIS.ecsv
-```
-
-or place `Euclid-VIS.ecsv` in the repository root.
-
-## Smoke Run
-
-```bash
-export HST_COSMOS_PATH=/path/to/COSMOS_23.5_training_sample
-export EUCLID_VIS_FILTER_PATH=/path/to/Euclid-VIS.ecsv  # only if needed
-bash examples/run_smoke.sh
-```
-
-Manual lens-only example:
-
-```bash
-python LRE_gg_lens.py \
-  --enable-hst \
-  --num-runs 1 \
-  --batch-size 1 \
-  --num-workers 1 \
-  --storage zarr \
-  --dtype float16 \
-  --euclid-bands VIS \
-  --lsst-bands all \
-  --roman-bands F106,F129,F158 \
-  --num-pix 83 \
-  --lens-field-num-pix 83 \
-  --lens-sky-area 8 \
-  --lens-sky-area-galaxies 8 \
-  --data-root data/smoke/lens \
+python scripts/render_hst_to_surveys.py \
+  --input-glob "/path/to/hst_cutouts/*.fits" \
+  --out data/hst_to_surveys.zarr \
   --overwrite \
-  --disable-jit
+  --hst-pixel-scale 0.05 \
+  --hst-psf-fwhm 0.09 \
+  --target-size 83 \
+  --surveys euclid,lsst,roman \
+  --euclid-bands VIS \
+  --lsst-bands g,r,i,z,y \
+  --roman-bands F106,F129,F158 \
+  --min-snr 5 \
+  --require-detected-in all
 ```
 
-## Production Run
+For single-band HST inputs, band colors are not physically inferred. Use `--flux-scale` to provide empirical or catalog-derived per-band scaling, for example:
 
 ```bash
-export HST_COSMOS_PATH=/path/to/COSMOS_23.5_training_sample
-TARGET_PER_CLASS=100000 bash run_hst_100k_production.sh
+--flux-scale euclid/VIS:1.0,lsst/g:0.7,lsst/r:0.9,lsst/i:1.0,roman/F158:1.1
 ```
 
-Common overrides:
+Noise, PSF, and pixel-scale defaults are conservative approximations and should be overridden for a specific survey simulation campaign when calibrated values are available:
 
 ```bash
-PYTHON_BIN=/path/to/python \
-OUTPUT_ROOT=/path/to/output \
-TARGET_PER_CLASS=100000 \
-LENS_WORKERS=3 \
-NONLENS_WORKERS=5 \
-bash run_hst_100k_production.sh
+--noise-sigma euclid/VIS:0.008,lsst:0.02,roman:0.006
+--psf-fwhm euclid/VIS:0.18,lsst/i:0.74,roman/F158:0.18
+--pixel-scale euclid/VIS:0.101,lsst:0.2,roman:0.11
 ```
 
-## Output Layout
+## Attribution
 
-A zarr shard contains top-level arrays for sample IDs, labels, metadata, and per-product groups such as:
+This renderer is source-only infrastructure for survey-like preprocessing. It does not vendor SLSim. The broader simulation work that motivated this repo uses and should credit SLSim, the LSST Strong Lensing Simulation pipeline:
 
-- `images/{euclid,lsst,roman}`
-- `full_clean_psf/{euclid,lsst,roman}`
-- `full_clean_nopsf/{euclid,lsst,roman}`
-- `deflector_obs/{euclid,lsst,roman}`
-- `source_lensed_obs/{euclid,lsst,roman}`
-- `source_unlensed_clean_nopsf/{euclid,lsst,roman}`
-- `lens_fields/{potential_map,lens_map,alpha_x,alpha_y,gamma1_map,gamma2_map,mu_map}`
+- https://github.com/LSST-strong-lensing/slsim
+- https://slsim.readthedocs.io
 
-Generated datasets are intentionally ignored by git.
+If you compare these rendered HST cutouts with SLSim-generated data, acknowledge SLSim and the original HST/COSMOS data products used as inputs.

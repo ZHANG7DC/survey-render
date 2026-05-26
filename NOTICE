@@ -1,16 +1,17 @@
-This repository provides standalone wrappers and generation scripts for
-HST COSMOS-backed multi-survey strong-lensing simulations.
+Survey Render is a direct HST cutout to survey-like image renderer.
 
-Credit and dependency notice
-----------------------------
-This code depends on SLSim, the LSST Strong Lensing Simulation pipeline, for
-strong-lensing populations, HST COSMOS catalog-source morphology support, and
-simulation interfaces used by the generator.
+This repository does not vendor SLSim and does not generate SLSim lens/source
+populations. It is intended to produce survey-like degraded renderings of
+existing HST image cutouts.
+
+Credit note: the broader lens simulation workflow that motivated this renderer
+uses SLSim, the LSST Strong Lensing Simulation pipeline. If this renderer is
+used alongside SLSim-generated data or in comparisons to that pipeline, cite and
+acknowledge SLSim:
 
 SLSim project: https://github.com/LSST-strong-lensing/slsim
 SLSim documentation: https://slsim.readthedocs.io
 SLSim license: MIT
 
-If you use this repository for research, cite and acknowledge SLSim according
-to the SLSim citation guidance, and cite the underlying survey/instrument data
-products and catalogs used in your run.
+Also cite and follow the usage terms for the HST/COSMOS or other survey data
+products used as renderer inputs.

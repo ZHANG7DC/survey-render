@@ -1,7 +1,7 @@
 [project]
-name = "hst-anomaly-multisurvey-gen"
+name = "survey-render"
 version = "0.1.0"
-description = "HST COSMOS-backed lens and false-positive generator for Euclid, LSST, and Roman image products."
+description = "Direct HST cutout renderer for Euclid, LSST, and Roman survey-like images."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -10,21 +10,14 @@ authors = [
 ]
 dependencies = [
   "numpy",
+  "scipy",
   "astropy",
-  "speclite",
-  "h5py",
   "zarr<3",
   "numcodecs",
-  "lenstronomy",
 ]
 
-[project.optional-dependencies]
-slsim = [
-  "slsim @ git+https://github.com/LSST-strong-lensing/slsim.git",
-]
-jax = [
-  "jaxtronomy",
-]
+[project.scripts]
+render-hst-to-surveys = "survey_render.cli:main"
 
 [tool.ruff]
 line-length = 99

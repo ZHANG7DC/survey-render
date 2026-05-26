@@ -1,8 +1,5 @@
 numpy
+scipy
 astropy
-speclite
-h5py
 zarr<3
 numcodecs
-lenstronomy
-git+https://github.com/LSST-strong-lensing/slsim.git
