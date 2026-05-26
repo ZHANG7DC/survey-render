@@ -1,0 +1,30 @@
+[project]
+name = "hst-anomaly-multisurvey-gen"
+version = "0.1.0"
+description = "HST COSMOS-backed lens and false-positive generator for Euclid, LSST, and Roman image products."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+  {name = "ZHANG7DC", email = "diczhang@cs.stonybrook.edu"}
+]
+dependencies = [
+  "numpy",
+  "astropy",
+  "speclite",
+  "h5py",
+  "zarr<3",
+  "numcodecs",
+  "lenstronomy",
+]
+
+[project.optional-dependencies]
+slsim = [
+  "slsim @ git+https://github.com/LSST-strong-lensing/slsim.git",
+]
+jax = [
+  "jaxtronomy",
+]
+
+[tool.ruff]
+line-length = 99

@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Generated data and logs
+data/
+output/
+logs/
+.tmp_hst_100k/
+*.zarr/
+*.h5
+*.hdf5
+*.npz
+*.fits
+
+# Local secrets and machine-specific config
+.env
+.env.*
+*.local

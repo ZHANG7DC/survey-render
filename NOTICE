@@ -1,0 +1,16 @@
+This repository provides standalone wrappers and generation scripts for
+HST COSMOS-backed multi-survey strong-lensing simulations.
+
+Credit and dependency notice
+----------------------------
+This code depends on SLSim, the LSST Strong Lensing Simulation pipeline, for
+strong-lensing populations, HST COSMOS catalog-source morphology support, and
+simulation interfaces used by the generator.
+
+SLSim project: https://github.com/LSST-strong-lensing/slsim
+SLSim documentation: https://slsim.readthedocs.io
+SLSim license: MIT
+
+If you use this repository for research, cite and acknowledge SLSim according
+to the SLSim citation guidance, and cite the underlying survey/instrument data
+products and catalogs used in your run.
